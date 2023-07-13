@@ -1,25 +1,41 @@
-import logo from './logo.svg';
+import React, { useState } from 'react';
+import Login from './components/auth/Login';
+import Icons from './components/home/Icons';
+import { useEffect } from 'react';
+import { gapi } from 'gapi-script';
+
 import './App.css';
 
-function App() {
+const App = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    function start() {
+      gapi.client.init({
+        clientId: '646263942180-6rii0ki94o9k04m4sq5oiefgfcoqadg9.apps.googleusercontent.com'
+      })
+    }
+
+    gapi.load('client:auth2', start)
+  })
+
+  const handleLogin = () => {
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+  };
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <>
+      {isAuthenticated ? (
+        <Icons onLogout={handleLogout} />
+      ) : (
+        <Login onLogin={handleLogin} />
+      )}
+    </>
   );
-}
+};
 
 export default App;
