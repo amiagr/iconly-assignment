@@ -1,35 +1,43 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import axios from 'axios';
+import InfiniteScroll from 'react-infinite-scroll-component';
 import '../../styles/home/Icons.css';
 import { useGoogleLogout } from "react-google-login";
+import Snackbar from "../global/Snackbar";
 
 function Icons({ onLogout }) {
-  const icons = [
-    {
-      id: 1,
-      label: "Home",
-      iconUrl: "https://img.icons8.com/ios-filled/50/ffffff/home.png",
-    },
-    {
-      id: 2,
-      label: "Profile",
-      iconUrl: "https://img.icons8.com/ios-filled/50/ffffff/user-male-circle.png",
-    },
-    {
-      id: 3,
-      label: "Settings",
-      iconUrl: "https://img.icons8.com/ios-filled/50/ffffff/settings.png",
-    },
-    {
-      id: 4,
-      label: "Logout",
-      iconUrl: "https://img.icons8.com/ios-filled/50/ffffff/logout-rounded-up.png",
-    },
-    {
-      id: 5,
-      label: "Logout",
-      iconUrl: "https://img.icons8.com/ios-filled/50/ffffff/logout-rounded-up.png",
-    }
-  ];
+  const [icons, setIcons] = useState([]);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, sethasMore] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const [showSnackbar, setShowSnackbar] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+
+  const iconsPerPage = 100;
+
+  useEffect(() => {
+    loadIcons();
+  }, []);
+
+  async function loadIcons() {
+    setIsLoading(true);
+
+    await axios.get(
+      `http://localhost:8000/api/icons?page=${currentPage}&per_page=${iconsPerPage}`
+    ).then(({ data }) => {
+      if (data.to === data.total) {
+        sethasMore(true)
+      }
+      setCurrentPage(currentPage + 1);
+      setIcons([...icons, ...data.data]);
+    }).catch(err => {
+      openSnackbar('Something went wrong with API call!', err)
+    });
+
+    setIsLoading(false);
+  }
 
   const onLogoutSuccess = () => {
     onLogout();
@@ -49,6 +57,18 @@ function Icons({ onLogout }) {
     signOut();
   };
 
+  const openSnackbar = (message) => {
+    setSnackbarMessage(message);
+    setShowSnackbar(true);
+    setTimeout(() => {
+      setShowSnackbar(false);
+    }, 3000);
+  };
+
+  const handleSnackbarClose = () => {
+    setShowSnackbar(false);
+  };
+
   return (
     <div className="main">
       <div className="appbar">
@@ -63,14 +83,36 @@ function Icons({ onLogout }) {
           </svg>
         </button>
       </div>
-      <div className="container">
+      <InfiniteScroll
+        className="container"
+        dataLength={icons.length} //This is important field to render the next data
+        next={loadIcons}
+        hasMore={hasMore}
+        loader={<h4>Loading...</h4>}
+        endMessage={
+          <p style={{ textAlign: 'center' }}>
+            <b>Yay! You have seen it all</b>
+          </p>
+        }
+        // below props only if you need pull down functionality
+        refreshFunction={loadIcons}
+        pullDownToRefresh
+        pullDownToRefreshThreshold={10}
+        pullDownToRefreshContent={
+          <h3 style={{ textAlign: 'center' }}>&#8595; Pull down to refresh</h3>
+        }
+        releaseToRefreshContent={
+          <h3 style={{ textAlign: 'center' }}>&#8593; Release to refresh</h3>
+        }
+      >
         {icons.map((icon) => (
           <div key={icon.id} className="icon">
-            <img src={icon.iconUrl} alt={icon.label} />
-            <a className="icon-label" href={icon.iconUrl} target="_blank">{icon.label}</a>
+            <img src={icon.svg_url} alt={icon.label} />
+            <a className="icon-label" href={icon.svg_url} target="_blank" rel="noreferrer">{icon.label}</a>
           </div>
         ))}
-      </div>
+      </InfiniteScroll>
+      <Snackbar message={snackbarMessage} show={showSnackbar} onClose={handleSnackbarClose} />
     </div>
   );
 }
